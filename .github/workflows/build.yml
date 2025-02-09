@@ -1,0 +1,47 @@
+name: 'Build'
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - '1.*'
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  build:
+    name: 'Build'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        loader: [ 'Fabric', 'NeoForge' ]
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+          fetch-tags: true
+
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: 'Setup Gradle'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: 'Build ${{ matrix.loader }} with Gradle'
+        run: ./gradlew :${{ matrix.loader }}:build
+
+      - name: 'Upload ${{ matrix.loader }} artifacts'
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: 'Artifacts-${{ matrix.loader }}'
+          path: ${{ matrix.loader }}/build/libs/*.jar
